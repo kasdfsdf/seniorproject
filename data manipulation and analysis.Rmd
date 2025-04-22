@@ -1,0 +1,642 @@
+---
+title: "things"
+author: "Abhinav Karthikeyan"
+date: "2025-03-27"
+output: html_document
+---
+
+```{r, fig.width=12, fig.height=12}
+library(tidyverse)
+library(tidytext)
+library(textdata)
+library(pubtheme)
+library(forcats)
+
+# Vector of Team Names
+teams <- c("ravens", "bills", "chiefs", "bengals", "eagles", "dolphins", "cowboys", "packers", 
+           "texans", "browns", "bucs", "rams", "steelers", "colts", "seahawks", 
+           "cardinals", "falcons", "bears", "broncos", "chargers", "vikings", "patriots", 
+           "giants", "jets", "panthers", "saints", "titans", "raiders", "commanders")
+
+# Loading each team's csv dynamically
+team_data <- lapply(teams, function(team) {
+  read_csv(paste0(team, ".csv"))
+})
+
+# Assign each dataframe to its respective team name
+list2env(setNames(team_data, teams), envir = .GlobalEnv) 
+
+#Capitalizing Team Names
+comment_df <- tibble(
+  team = str_to_title(teams),
+  comment_count = map_int(team_data, nrow)
+)
+
+#Plotting comments
+comments <- ggplot(comment_df, 
+       aes(x = comment_count, 
+           y = fct_reorder(team, comment_count), 
+           label = comment_count)) +
+  geom_col(width = 0.6, fill = "steelblue") + 
+  geom_text(hjust = -0.1, size = 4) +
+  labs(
+    title = "Reddit Comment Volume by NFL Team",
+    x = "Total Comments",
+    y = NULL
+  ) +
+  theme_minimal() +
+  theme(
+    plot.margin = margin(10, 40, 10, 10), 
+    axis.text.y = element_text(size = 10),
+    axis.text.x = element_text(size = 10)
+  ) +
+  coord_cartesian(clip = "off")  
+
+#Pubtheme
+comments %>% pub(type = 'bar')
+
+
+```
+
+```{r setup, include=FALSE}
+#Setting up afinn
+afinn <- get_sentiments("afinn")
+get_sentiment <- function(df) {
+  df %>%
+    unnest_tokens(word, Comment) %>%       # Break into words
+    inner_join(afinn, by = "word") %>%     # Match sentiment scores
+    group_by(doc = row_number()) %>%       # Each comment = 1 doc
+    summarise(sentiment = sum(value))      # Sum sentiment for each comment
+}
+```
+
+```{r, fig.width=12, fig.height=12}
+#Finding team sentiment for afinn
+ravens_sentiment <- get_sentiment(ravens)
+bills_sentiment <- get_sentiment(bills)
+chiefs_sentiment <- get_sentiment(chiefs)
+bengals_sentiment <- get_sentiment(bengals)
+eagles_sentiment <- get_sentiment(eagles)
+dolphins_sentiment <- get_sentiment(dolphins)
+cowboys_sentiment <- get_sentiment(cowboys)
+packers_sentiment <- get_sentiment(packers)
+texans_sentiment <- get_sentiment(texans)
+browns_sentiment <- get_sentiment(browns)
+bucs_sentiment <- get_sentiment(bucs)
+rams_sentiment <- get_sentiment(rams)
+steelers_sentiment <- get_sentiment(steelers)
+colts_sentiment <- get_sentiment(colts)
+seahawks_sentiment <- get_sentiment(seahawks)
+cardinals_sentiment <- get_sentiment(cardinals)
+falcons_sentiment <- get_sentiment(falcons)
+bears_sentiment <- get_sentiment(bears)
+broncos_sentiment <- get_sentiment(broncos)
+chargers_sentiment <- get_sentiment(chargers)
+vikings_sentiment <- get_sentiment(vikings)
+patriots_sentiment <- get_sentiment(patriots)
+giants_sentiment <- get_sentiment(giants)
+jets_sentiment <- get_sentiment(jets)
+panthers_sentiment <- get_sentiment(panthers)
+saints_sentiment <- get_sentiment(saints)
+titans_sentiment <- get_sentiment(titans)
+raiders_sentiment <- get_sentiment(raiders)
+commanders_sentiment <- get_sentiment(commanders)
+
+# List of teams
+teams <- c("Ravens", "Bills", "Chiefs", "Bengals", "Eagles", "Dolphins", "Cowboys", "Packers", 
+           "Texans", "Browns", "Bucs", "Rams", "Steelers", "Colts", "Seahawks", 
+           "Cardinals", "Falcons", "Bears", "Broncos", "Chargers", "Vikings", "Patriots", 
+           "Giants", "Jets", "Panthers", "Saints", "Titans", "Raiders", "Commanders")
+
+# Create a data frame with teams and their mean sentiment scores
+team_sentiments <- data.frame(
+  team = teams,
+  sentiment = c(
+    mean(ravens_sentiment$sentiment, na.rm = TRUE), 
+    mean(bills_sentiment$sentiment, na.rm = TRUE), 
+    mean(chiefs_sentiment$sentiment, na.rm = TRUE), 
+    mean(bengals_sentiment$sentiment, na.rm = TRUE),
+    mean(eagles_sentiment$sentiment, na.rm = TRUE),
+    mean(dolphins_sentiment$sentiment, na.rm = TRUE),
+    mean(cowboys_sentiment$sentiment, na.rm = TRUE),
+    mean(packers_sentiment$sentiment, na.rm = TRUE),
+    mean(texans_sentiment$sentiment, na.rm = TRUE),
+    mean(browns_sentiment$sentiment, na.rm = TRUE),
+    mean(bucs_sentiment$sentiment, na.rm = TRUE),
+    mean(rams_sentiment$sentiment, na.rm = TRUE),
+    mean(steelers_sentiment$sentiment, na.rm = TRUE),
+    mean(colts_sentiment$sentiment, na.rm = TRUE),
+    mean(seahawks_sentiment$sentiment, na.rm = TRUE),
+    mean(cardinals_sentiment$sentiment, na.rm = TRUE),
+    mean(falcons_sentiment$sentiment, na.rm = TRUE),
+    mean(bears_sentiment$sentiment, na.rm = TRUE),
+    mean(broncos_sentiment$sentiment, na.rm = TRUE),
+    mean(chargers_sentiment$sentiment, na.rm = TRUE),
+    mean(vikings_sentiment$sentiment, na.rm = TRUE),
+    mean(patriots_sentiment$sentiment, na.rm = TRUE),
+    mean(giants_sentiment$sentiment, na.rm = TRUE),
+    mean(jets_sentiment$sentiment, na.rm = TRUE),
+    mean(panthers_sentiment$sentiment, na.rm = TRUE),
+    mean(saints_sentiment$sentiment, na.rm = TRUE),
+    mean(titans_sentiment$sentiment, na.rm = TRUE),
+    mean(raiders_sentiment$sentiment, na.rm = TRUE),
+    mean(commanders_sentiment$sentiment, na.rm = TRUE)
+  )
+)
+
+# Create a bar plot for the mean sentiment scores by team
+afinn <- ggplot(team_sentiments, aes(x = reorder(team, sentiment), y = sentiment)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  coord_flip() +  # Flip the axis to make it more readable
+  labs(title = "Mean Sentiment Scores by Team", x = "Team", y = "Mean Sentiment Score") +
+  theme_minimal()  # Apply a minimal theme to the plot
+
+afinn <- ggplot(team_sentiments, 
+       aes(x = sentiment, 
+           y = reorder(team,sentiment))) +
+  geom_col(width = 0.6, fill = "steelblue") +  # thinner bars for spacing
+  labs(
+    title = "Mean Sentiment Scores by Team (AFINN)",
+    x = "Mean Sentiment Score",
+    y = "Team"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.margin = margin(10, 40, 10, 10),  # give room for labels
+    axis.text.y = element_text(size = 10),
+    axis.text.x = element_text(size = 10)
+  ) +
+  coord_cartesian(clip = "off")  # allow labels to spill outside plot
+
+#Pubtheme
+afinn %>% pub(type = 'bar')
+
+
+```
+
+```{r, fig.width=12, fig.height=12}
+library(syuzhet)
+library(tidyverse)
+library(vader)
+library(reticulate)
+
+# Define the list of teams
+teams <- c("ravens", "bills", "chiefs", "bengals", "eagles", "dolphins", "cowboys", "packers", 
+           "texans", "browns", "bucs", "rams", "steelers", "colts", "seahawks", 
+           "cardinals", "falcons", "bears", "broncos", "chargers", "vikings", "patriots", 
+           "giants", "jets", "panthers", "saints", "titans", "raiders", "commanders")
+
+# Perform NRC sentiment analysis for each team
+nrc_sentiments <- lapply(teams, function(team) {
+  team_data <- get_nrc_sentiment(get(team)$Comment)  # Get the NRC sentiment for each team's comments
+  sentiment_score <- sum(team_data$positive)  # Summing positive sentiment for simplicity
+  print(team)
+  return(data.frame(team = team, sentiment_nrc = sentiment_score))
+})
+
+# Combine the individual NRC sentiment results into one data frame
+nrc_summary <- bind_rows(nrc_sentiments)
+
+# Plot NRC sentiment comparison
+nrc_summary$team <- str_to_title(nrc_summary$team)
+
+comment_df <- comment_df %>%
+  mutate(team = str_to_title(team))  # First letter uppercase
+
+nrc_summary <- bind_rows(nrc_sentiments) %>%
+  mutate(team = str_to_title(team))  # First letter uppercase
+
+# Join and normalize
+nrc_normalized <- nrc_summary %>%
+  left_join(comment_df, by = "team") %>%
+  mutate(normal = sentiment_nrc / comment_count)
+
+##Plotting
+
+nrc <- ggplot(nrc_normalized, 
+       aes(x = normal, 
+           y = reorder(team,normal))) +
+  geom_col(width = 0.6, fill = "steelblue") +  # thinner bars for spacing
+  labs(
+    title = "Mean Sentiment Scores by Team (NRC)",
+    x = "Mean Sentiment Score",
+    y = "Team"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.margin = margin(10, 40, 10, 10),  # give room for labels
+    axis.text.y = element_text(size = 10),
+    axis.text.x = element_text(size = 10)
+  ) +
+  coord_cartesian(clip = "off")  # allow labels to spill outside plot
+
+##Pubtheme
+nrc %>% pub(type = 'bar')
+
+# Create or use an existing environment
+virtualenv_create("r-vader-env")
+virtualenv_install("r-vader-env", packages = "vaderSentiment")
+use_virtualenv("r-vader-env", required = TRUE)
+vader <- import("vaderSentiment.vaderSentiment", convert = TRUE)
+analyzer <- vader$SentimentIntensityAnalyzer()
+
+# Function to get VADER compound score
+get_vader_score <- function(text) {
+  analyzer$polarity_scores(text)$compound
+}
+
+#Applying function to each team
+vader_sentiments <- lapply(teams, function(team) {
+  team_data <- get(team)
+  sentiment_scores <- sapply(team_data$Comment, get_vader_score)
+  print(team)
+  data.frame(team = team, sentiment_vader = mean(sentiment_scores, na.rm = TRUE))
+})
+
+#VADER Data Manipulation
+vader_summary <- dplyr::bind_rows(vader_sentiments)
+vader_summary$team <- str_to_title(vader_summary$team)
+
+# Plotting
+vader <- ggplot(vader_summary, 
+       aes(x = sentiment_vader, 
+           y = reorder(team,sentiment_vader))) +
+  geom_col(width = 0.6, fill = "steelblue") +  # thinner bars for spacing
+  labs(
+    title = "Mean Sentiment Scores by Team (VADER)",
+    x = "Mean Sentiment Score",
+    y = "Team"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.margin = margin(10, 40, 10, 10),  # give room for labels
+    axis.text.y = element_text(size = 10),
+    axis.text.x = element_text(size = 10)
+  ) +
+  coord_cartesian(clip = "off")  # allow labels to spill outside plot
+
+# Pubtheme
+vader %>% pub(type = 'bar')
+```
+
+```{r setup, include=FALSE}
+library(corrplot)
+
+#Loading in csv's
+winpct <- read.csv("winpct.csv")
+attendance <- read.csv("attendance.csv")
+franchisevalue <- read.csv("franchisevalue.csv")
+
+# Ensure all team names are lowercase
+team_sentiments <- team_sentiments %>%
+  mutate(team = tolower(team))
+
+nrc_summary <- nrc_summary %>%
+  mutate(team = tolower(team))
+
+vader_summary <- vader_summary %>%
+  mutate(team = tolower(team))
+
+# Now join them all together
+sentiments <- team_sentiments %>%
+  rename(sentiment_afinn = sentiment) %>%
+  left_join(nrc_summary, by = "team") %>%
+  left_join(vader_summary, by = "team")
+
+winpct <- winpct %>%
+  mutate(team = tolower(team))
+
+franchisevalue <- franchisevalue %>%
+  mutate(team = tolower(team))
+
+attendance <- attendance %>%
+  mutate(team = tolower(team))
+
+# Now perform the joins
+full_data <- sentiments %>%
+  left_join(winpct, by = "team") %>%
+  left_join(franchisevalue, by = "team") %>%
+  left_join(attendance, by = "team")
+
+# Select only numeric columns for correlation
+correlation_data <- full_data %>%
+  select(sentiment_afinn, sentiment_nrc, sentiment_vader, pct, value, avg) %>%
+  mutate(avg = gsub(",", "", avg),        # remove commas
+         avg = gsub("\\$", "", avg),      # remove dollar signs if any
+         avg = as.numeric(avg))  
+
+# Compute the correlation matrix
+cor_matrix <- cor(correlation_data, use = "complete.obs")
+
+#Corrplot
+corrplot(cor_matrix, method = 'number')
+```
+
+```{r, fig.width=12, fig.height=12}
+#Data Manipulation
+attendance <- attendance %>%
+  mutate(
+    avg = str_remove_all(avg, ","),
+    avg = as.numeric(avg),
+    team = str_to_title(team)
+  )
+
+#Plotting
+att <- ggplot(attendance, 
+       aes(x = avg, 
+           y = fct_reorder(team, avg))) +
+  geom_col(width = 0.6, fill = "darkgreen") +  # thinner bars for spacing
+  labs(
+    title = "Attendance by NFL Team",
+    x = "Average Attendance",
+    y = NULL
+  ) +
+  theme_minimal() +
+  theme(
+    plot.margin = margin(10, 40, 10, 10),  # give room for labels
+    axis.text.y = element_text(size = 10),
+    axis.text.x = element_text(size = 10)
+  ) +
+  coord_cartesian(clip = "off")  # allow labels to spill outside plot
+
+#Pubtheme
+att %>% pub(type = 'bar')
+```
+
+```{r, fig.width=12, fig.height=12}
+#Uppercase
+franchisevalue <- franchisevalue %>%
+  mutate(
+    team = str_to_title(team)
+  )
+
+#Plotting
+fv <- ggplot(franchisevalue, 
+       aes(x = value, 
+           y = fct_reorder(team, value))) +
+  geom_col(width = 0.6, fill = "darkgreen") +  # thinner bars for spacing
+  labs(
+    title = "Franchise Value (Forbes 2024)",
+    x = "Franchise Value (In Billions)",
+    y = "Team"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.margin = margin(10, 40, 10, 10),  # give room for labels
+    axis.text.y = element_text(size = 10),
+    axis.text.x = element_text(size = 10)
+  ) +
+  coord_cartesian(clip = "off")  # allow labels to spill outside plot
+
+#Pubtheme
+fv %>% pub(type = 'bar')
+```
+
+```{r, fig.width=12, fig.height=12}
+#Uppercase
+winpct <- winpct %>%
+  mutate(
+    team = str_to_title(team)
+  ) %>%
+  drop_na()
+
+#Plotting
+wp <- ggplot(winpct, 
+       aes(x = pct, 
+           y = fct_reorder(team, pct))) +
+  geom_col(width = 0.6, fill = "darkgreen") +  # thinner bars for spacing
+  labs(
+    title = "Win Percentage (2024 Regular Season)",
+    x = "Win Percentage (%)",
+    y = "Team"
+  ) +
+  theme_minimal() +
+  theme(
+    plot.margin = margin(10, 40, 10, 10),  # give room for labels
+    axis.text.y = element_text(size = 10),
+    axis.text.x = element_text(size = 10)
+  ) +
+  coord_cartesian(clip = "off")  # allow labels to spill outside plot
+
+#Pubtheme
+wp %>% pub(type = 'bar')
+```
+
+```{r, fig.width=12, fig.height=12}
+library(caret)
+library(stats)
+
+#PCA Weighting
+pca <- correlation_data[, c("sentiment_afinn", "sentiment_nrc", "sentiment_vader")]
+
+#Minimaxing
+pca <- pca %>%
+  mutate(across(everything(), ~ ( . - min(.) ) / ( max(.) - min(.) )))
+
+pca_result <- prcomp(pca, scale. = TRUE)
+
+#Weights
+weights <- pca_result$rotation[, 1]
+
+#Multiplying and summing weights through
+correlation_data$composite_score <- (
+  pca$sentiment_afinn * weights["sentiment_afinn"] +
+  pca$sentiment_nrc   * weights["sentiment_nrc"] +
+  pca$sentiment_vader * weights["sentiment_vader"]
+)
+
+#Correlation Matrix
+cor_matrix <- cor(correlation_data[,c("Win Percentage", "Average Attendance", "Franchise Value", "Composite Score")], use = "complete.obs")
+
+#Plotting
+ggcorrplot(cor_matrix,
+           hc.order = TRUE,
+           type = "lower",
+           lab = TRUE,
+           lab_size = 5) +  # Increase label size here
+  theme_minimal(base_size = 14) +  # Increase overall base text size
+  theme(
+    panel.background = element_rect(fill = "gray90", color = NA),  # Gray background
+    plot.background = element_rect(fill = "gray90", color = NA)    # Background around the whole plot
+  )
+
+
+```
+
+```{r, fig.width=12, fig.height=12}
+library(lme4)     
+library(lmerTest)
+
+#Reading in
+correlation_data <- read.csv("correlation_data.csv")
+
+#Baseline Linear Regression Model
+model1 <- lm(pct ~ composite_score, data = correlation_data)
+summary(model1)
+
+#Reading In
+model2df <- read.csv("model2.csv")
+
+#Data Manipulation
+model2df <- model2df %>%
+  left_join(correlation_data %>% select(team, composite_score), by = "team")
+
+##Fixed Effects
+model2 <- lm(
+  pct ~ composite_score * vegas + 
+    prevpct  + 
+    sos + 
+    factor(div),
+  data = model2df
+)
+
+summary(model2)
+
+##Residuals and Plotting
+correlation_data$resid <- resid(model1)
+
+dg <- correlation_data %>%
+  arrange(resid) %>%
+  mutate(name = factor(team, levels = team),
+         value = resid,
+         x.max = max(abs(resid)) * 1.1) 
+
+dg <- dg %>%
+  mutate(label_category = ifelse(value > 0, "Underrated", "Overhyped"))
+
+g <- ggplot(dg, 
+            aes(x = value, 
+                y = name)) +
+  geom_col(aes(x = x.max),        
+           fill = publightgray, 
+           width = 0.8) + 
+  geom_col(width = 0.8, aes(fill = label_category)) +  
+  scale_fill_manual(values = c("Underrated" = "#1b9e77", "Overhyped" = "#d95f02")) + 
+  labs(title    = "Team Overhype",
+       x        = "Model Residual (Actual - Predicted Win %)",
+       y        = NULL,
+       fill     = "Performance")
+
+g %>%
+  pub(type = "bar")
+
+```
+
+```{r, fig.width=12, fig.height=12}
+library(ggplot2)
+library(dplyr)
+library(ggrepel)
+library(gridExtra)
+library(factoextra)
+
+# Function to determine optimal k using the elbow method
+optimal_k <- function(data, max_k = 10) {
+  wss <- sapply(1:max_k, function(k) {
+    kmeans(data, centers = k, nstart = 10)$tot.withinss
+  })
+  elbow <- which(diff(diff(wss)) == min(diff(diff(wss)))) + 1
+  return(elbow)
+}
+
+kmeans_plot <- function(df, xvar, yvar) {
+  data <- df %>%
+    select(team, all_of(xvar), all_of(yvar)) %>%
+    na.omit()
+  
+  features <- data[, c(xvar, yvar)]
+  k <- optimal_k(features)
+
+  km <- kmeans(features, centers = k, nstart = 25)
+  data$cluster <- factor(km$cluster)
+
+  ggplot(data, aes_string(x = xvar, y = yvar, color = "cluster", fill = "cluster", label = "team")) +
+    stat_ellipse(geom = "polygon", alpha = 0.25, aes(group = cluster), show.legend = FALSE) +
+    geom_point(size = 3.5, alpha = 0.95) +
+    geom_text_repel(size = 3.5, max.overlaps = 15, color = "white") +
+    scale_color_manual(values = scales::hue_pal()(k)) +
+    scale_fill_manual(values = scales::hue_pal()(k)) +
+    labs(
+      title = paste("K-Means Clustering:", xvar, "vs", yvar),
+      subtitle = paste("Optimal K =", k),
+      x = xvar,
+      y = yvar
+    ) +
+    theme_minimal(base_size = 13) +
+    theme(
+      plot.background = element_rect(fill = "black", color = NA),
+      panel.background = element_rect(fill = "black", color = NA),
+      panel.grid.major = element_line(color = "gray30"),
+      panel.grid.minor = element_line(color = "gray20"),
+      axis.text = element_text(color = "white"),
+      axis.title = element_text(color = "white"),
+      plot.title = element_text(color = "white", size = 16, face = "bold"),
+      plot.subtitle = element_text(color = "gray80"),
+      legend.position = "none"
+    )
+}
+
+# Create plots using composite_score vs other variables
+p1 <- kmeans_plot(kmeans, "composite_score", "qbr") +
+  labs(
+    title = "QBR vs Composite",
+    x = "Composite Sentiment Score (Reddit)",
+    y = "Quarterback Rating (QBR)"
+  ) +
+  theme(
+    plot.title = element_text(color = "lightgreen"),
+    axis.title.x = element_text(color = "white"),
+    axis.title.y = element_text(color = "white")
+  )
+p2 <- kmeans_plot(kmeans, "composite_score", "vegas") +
+  labs(
+    title = "Vegas vs Composite",
+    x = "Composite Sentiment Score (Reddit)",
+    y = "Preseason Win Totals"
+  ) +
+  theme(
+    plot.title = element_text(color = "lightgreen"),
+    axis.title.x = element_text(color = "white"),
+    axis.title.y = element_text(color = "white")
+  )
+p3 <- kmeans_plot(kmeans, "composite_score", "sos") +
+  labs(
+    title = "Strength of Schedule vs Composite",
+    x = "Composite Sentiment Score (Reddit)",
+    y = "Strength of Schedule"
+  ) +
+  theme(
+    plot.title = element_text(color = "lightgreen"),
+    axis.title.x = element_text(color = "white"),
+    axis.title.y = element_text(color = "white")
+  )
+p4 <- kmeans_plot(kmeans, "composite_score", "prevpct") +
+  labs(
+    title = "Previous Season Winning Percentage vs Composite",
+    x = "Composite Sentiment Score (Reddit)",
+    y = "Previous Season Winning Percentage"
+  ) +
+  theme(
+    plot.title = element_text(color = "lightgreen"),
+    axis.title.x = element_text(color = "white"),
+    axis.title.y = element_text(color = "white")
+  )
+p5 <- kmeans_plot(kmeans, "composite_score", "pct") +
+  labs(
+    title = "Composite Score vs Winning Percentage",
+    x = "Composite Sentiment Score (Reddit)",
+    y = "Winning Percentage in 2024 NFL Regular Season"
+  ) +
+  theme(
+    plot.title = element_text(color = "lightgreen"),
+    axis.title.x = element_text(color = "white"),
+    axis.title.y = element_text(color = "white")
+  )
+
+p1
+p2
+p3
+p4
+p5
+  
+
+```
